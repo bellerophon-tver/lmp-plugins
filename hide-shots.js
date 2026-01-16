@@ -1,51 +1,87 @@
+// index.js - Lampa plugin to remove "Shots"
 (function () {
-    'use strict';
-    function startPlugin() {
-        window.hideshots = !0;
-        Lampa.Listener.follow('full', function (e) {
-            if (e.type == 'complite') {
-                setInterval(() => {
-                    // Главное меню
-                    let shots_menu = document.querySelector('.menu--right .selector[data-name*="shots"], .menu .item[data-menu*="shots"], .menu-row [data-menu*="shots"]');
-                    if (shots_menu)
-                        shots_menu.remove();
+	'use strict';
+    const removeShots = (menu) => {
+        if (!menu || !Array.isArray(menu))
+            return menu;
+        return menu.filter(item => {
+            // основные проверки: id, slug, title (на случай локализации)
+            const id = (item.id || '').toString().toLowerCase();
+            const slug = (item.slug || '').toString().toLowerCase();
+            const title = (item.title || '').toString().toLowerCase();
+            if (id === 'shots' || slug === 'shots' || title === 'shots')
+                return false;
 
-                    // Карточки и каталог
-                    let shots_items = document.querySelectorAll('.full-max .items-line .item[data-type*="shots"], a[href*="shots"], .item-shots');
-                    shots_items.forEach(item => {
-                        item.style.display = 'none';
-                        item.remove();
-                    });
-
-                    // Окно выбора источника (player sources)
-                    let source_shots = document.querySelectorAll('.selector[data-title*="Shots"], .menu-row .selector[data-name*="shots"], .player-sources [data-type*="shots"], .full-player-sources li[data-source*="shots"]');
-                    source_shots.forEach(item => {
-                        item.style.display = 'none';
-                        item.remove();
-                    });
-
-                    // CSS стили
-                    let style = document.createElement('style');
-                    style.id = 'hide-shots-style';
-                    style.textContent = `
-                    [data-menu*="shots"], [data-type*="shots"], [data-name*="shots"], 
-                    [data-title*="Shots"], [data-source*="shots"],
-                    .shots-block, .moments, .player-sources .shots,
-                    .menu .selector[href*="shots"], .full-player-sources [data-type*="shots"] { 
-                        display: none !important; 
-                        visibility: hidden !important; 
-                        height: 0 !important; 
-                        opacity: 0 !important;
-                    }
-                `;
-                    if (!document.getElementById('hide-shots-style')) {
-                        document.head.appendChild(style);
-                    }
-                }, 500);
+            // рекурсивно чистим вложенные меню
+            if (Array.isArray(item.items)) {
+                item.items = removeShots(item.items);
             }
-        })
+            return true;
+        });
+    };
+
+    // Патчим создание главного меню
+    const origMenuBuild = Lampa.Menu && Lampa.Menu.build;
+    if (origMenuBuild && typeof origMenuBuild === 'function') {
+        Lampa.Menu.build = function () {
+            const res = origMenuBuild.apply(this, arguments);
+            try {
+                if (Array.isArray(res))
+                    return removeShots(res);
+            } catch (e) {}
+            return res;
+        };
     }
 
-    if (!window.hideshots)
-        startPlugin()
+    // Патчим любые функции, возвращающие меню коллекций/навигации
+    const patchMethod = (obj, name) => {
+        if (!obj || !obj[name] || typeof obj[name] !== 'function')
+            return;
+        const orig = obj[name];
+        obj[name] = function () {
+            const res = orig.apply(this, arguments);
+            try {
+                if (Array.isArray(res))
+                    return removeShots(res);
+            } catch (e) {}
+            return res;
+        };
+    };
+
+    // Примеры точек патча (зависят от версии Lampa)
+    patchMethod(Lampa, 'menu'); // Lampa.menu()
+    patchMethod(Lampa, 'navigation'); // Lampa.navigation()
+    patchMethod(Lampa.Core && Lampa.Core, 'menu'); // Core.menu()
+
+    // Наблюдатель за динамическими вставками в DOM (на случай runtime-рендеринга)
+    try {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(m => {
+                m.addedNodes.forEach(node => {
+                    if (!(node instanceof HTMLElement))
+                        return;
+                    // удаляем элементы по data-id/data-slug или по тексту
+                    const targets = node.querySelectorAll('[data-id="shots"], [data-slug="shots"], *');
+                    targets.forEach(el => {
+                        const attrId = (el.getAttribute && el.getAttribute('data-id')) || '';
+                        const attrSlug = (el.getAttribute && el.getAttribute('data-slug')) || '';
+                        const txt = (el.textContent || '').trim().toLowerCase();
+                        if (attrId.toLowerCase() === 'shots' || attrSlug.toLowerCase() === 'shots' || txt === 'shots') {
+                            el.remove();
+                        }
+                    });
+                });
+            });
+        });
+
+        observer.observe(document.documentElement || document.body, {
+            childList: true,
+            subtree: true
+        });
+    } catch (e) {}
+
+    // Возвращаем объект плагина (если требуется API)
+    return {
+        name: 'remove-shots'
+    };
 })()
