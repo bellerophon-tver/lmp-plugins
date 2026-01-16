@@ -5,17 +5,17 @@
         Lampa.Listener.follow('full', function (e) {
             if (e.type == 'complite') {
                 setInterval(() => {
-                    ocument.querySelectorAll('.selector').forEach(selector => {
+                    document.querySelectorAll('.selector').forEach(selector => {
                         const span = selector.querySelector('span.title');
                         if (span && span.textContent.trim() === 'Shots') {
                             selector.remove();
                         }
-                    }
-                    }, 500);
-                }
-            })
-        }
+                    });
+                }, 500);
+            }
+        })
+    }
 
-        if (!window.hideshots)
-            startPlugin()
-    })()
+    if (!window.hideshots)
+        startPlugin()
+})()
