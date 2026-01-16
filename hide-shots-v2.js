@@ -21,24 +21,6 @@
         });
     };
 
-    // Патчим любые функции, возвращающие меню коллекций/навигации
-    const patchMethod = (obj, name) => {
-        if (!obj || !obj[name] || typeof obj[name] !== 'function')
-            return;
-        const orig = obj[name];
-        obj[name] = function () {
-            const res = orig.apply(this, arguments);
-            try {
-                if (Array.isArray(res))
-                    return removeShots(res);
-            } catch (e) {}
-            return res;
-        };
-    };
-
-    // Примеры точек патча (зависят от версии Lampa)
-    patchMethod(Lampa, 'navigation'); // Lampa.navigation()
-
     // Наблюдатель за динамическими вставками в DOM (на случай runtime-рендеринга)
     try {
         const observer = new MutationObserver((mutations) => {
