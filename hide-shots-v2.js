@@ -21,33 +21,6 @@
         });
     };
 
-    // Наблюдатель за динамическими вставками в DOM (на случай runtime-рендеринга)
-    try {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach(m => {
-                m.addedNodes.forEach(node => {
-                    if (!(node instanceof HTMLElement))
-                        return;
-                    // удаляем элементы по data-id/data-slug или по тексту
-                    const targets = node.querySelectorAll('[data-id="shots"], [data-slug="shots"], *');
-                    targets.forEach(el => {
-                        const attrId = (el.getAttribute && el.getAttribute('data-id')) || '';
-                        const attrSlug = (el.getAttribute && el.getAttribute('data-slug')) || '';
-                        const txt = (el.textContent || '').trim().toLowerCase();
-                        if (attrId.toLowerCase() === 'shots' || attrSlug.toLowerCase() === 'shots' || txt === 'shots') {
-                            el.remove();
-                        }
-                    });
-                });
-            });
-        });
-
-        observer.observe(document.documentElement || document.body, {
-            childList: true,
-            subtree: true
-        });
-    } catch (e) {}
-
     // Возвращаем объект плагина (если требуется API)
     return {
         name: 'remove-shots'
