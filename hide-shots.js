@@ -30,7 +30,7 @@
 	}
     
     // Блокировка переходов на Shots
-    Lampa.Modal.follow('open', function () {
+    Lampa.Modal.follow('full', function () {
         if (window.location.hash.includes('shots') || document.querySelector('.view--shots')) {
             window.history.back();
         }
