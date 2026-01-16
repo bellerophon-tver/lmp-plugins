@@ -1,5 +1,6 @@
 // index.js - Lampa plugin to remove "Shots"
-module.exports = function () {
+(function () {
+	'use strict';
     const removeShots = (menu) => {
         if (!menu || !Array.isArray(menu))
             return menu;
@@ -83,4 +84,4 @@ module.exports = function () {
     return {
         name: 'remove-shots'
     };
-};
+})()
