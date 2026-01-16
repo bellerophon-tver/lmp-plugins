@@ -29,12 +29,6 @@
 		})
 	}
     
-    // Блокировка переходов на Shots
-    Lampa.Modal.follow('full', function () {
-        if (window.location.hash.includes('shots') || document.querySelector('.view--shots')) {
-            window.history.back();
-        }
-    });
 	if (!window.hideshots)
 		startPlugin()
 })()
