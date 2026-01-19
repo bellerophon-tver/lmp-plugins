@@ -6,9 +6,9 @@
   function removeOnce(node) {
     if (!node) return;
     // Скрыть (CSS) — безопаснее, чтобы не ломать скрипты страницы
-    node.style.setProperty('display','none','important');
+    //node.style.setProperty('display','none','important');
     // Или полностью удалить из DOM:
-    // node.remove();
+    node.remove();
   }
 
   // Немедленная попытка удалить, если элемент уже есть
