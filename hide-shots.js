@@ -1,87 +1,36 @@
-// index.js - Lampa plugin to remove "Shots"
-(function () {
-	'use strict';
-    const removeShots = (menu) => {
-        if (!menu || !Array.isArray(menu))
-            return menu;
-        return menu.filter(item => {
-            // основные проверки: id, slug, title (на случай локализации)
-            const id = (item.id || '').toString().toLowerCase();
-            const slug = (item.slug || '').toString().toLowerCase();
-            const title = (item.title || '').toString().toLowerCase();
-            if (id === 'shots' || slug === 'shots' || title === 'shots')
-                return false;
+(function() {
+  'use strict';
 
-            // рекурсивно чистим вложенные меню
-            if (Array.isArray(item.items)) {
-                item.items = removeShots(item.items);
-            }
-            return true;
-        });
-    };
+  const SELECTOR = '.full-start__button.shots-view-button.selector.view--online';
 
-    // Патчим создание главного меню
-    const origMenuBuild = Lampa.Menu && Lampa.Menu.build;
-    if (origMenuBuild && typeof origMenuBuild === 'function') {
-        Lampa.Menu.build = function () {
-            const res = origMenuBuild.apply(this, arguments);
-            try {
-                if (Array.isArray(res))
-                    return removeShots(res);
-            } catch (e) {}
-            return res;
-        };
+  function removeOnce(node) {
+    if (!node) return;
+    // Скрыть (CSS) — безопаснее, чтобы не ломать скрипты страницы
+    //node.style.setProperty('display','none','important');
+    // Или полностью удалить из DOM:
+    node.remove();
+  }
+
+  // Немедленная попытка удалить, если элемент уже есть
+  document.querySelectorAll(SELECTOR).forEach(removeOnce);
+
+  // Наблюдатель за динамическим добавлением элементов
+  const observer = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      for (const added of m.addedNodes) {
+        if (!(added instanceof Element)) continue;
+        if (added.matches && added.matches(SELECTOR)) {
+          removeOnce(added);
+        }
+        // если элемент содержит искомый потомок
+        const found = added.querySelectorAll && added.querySelectorAll(SELECTOR);
+        if (found && found.length) found.forEach(removeOnce);
+      }
     }
+  });
 
-    // Патчим любые функции, возвращающие меню коллекций/навигации
-    const patchMethod = (obj, name) => {
-        if (!obj || !obj[name] || typeof obj[name] !== 'function')
-            return;
-        const orig = obj[name];
-        obj[name] = function () {
-            const res = orig.apply(this, arguments);
-            try {
-                if (Array.isArray(res))
-                    return removeShots(res);
-            } catch (e) {}
-            return res;
-        };
-    };
-
-    // Примеры точек патча (зависят от версии Lampa)
-    patchMethod(Lampa, 'menu'); // Lampa.menu()
-    patchMethod(Lampa, 'navigation'); // Lampa.navigation()
-    patchMethod(Lampa.Core && Lampa.Core, 'menu'); // Core.menu()
-
-    // Наблюдатель за динамическими вставками в DOM (на случай runtime-рендеринга)
-    try {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach(m => {
-                m.addedNodes.forEach(node => {
-                    if (!(node instanceof HTMLElement))
-                        return;
-                    // удаляем элементы по data-id/data-slug или по тексту
-                    const targets = node.querySelectorAll('[data-id="shots"], [data-slug="shots"], *');
-                    targets.forEach(el => {
-                        const attrId = (el.getAttribute && el.getAttribute('data-id')) || '';
-                        const attrSlug = (el.getAttribute && el.getAttribute('data-slug')) || '';
-                        const txt = (el.textContent || '').trim().toLowerCase();
-                        if (attrId.toLowerCase() === 'shots' || attrSlug.toLowerCase() === 'shots' || txt === 'shots') {
-                            el.remove();
-                        }
-                    });
-                });
-            });
-        });
-
-        observer.observe(document.documentElement || document.body, {
-            childList: true,
-            subtree: true
-        });
-    } catch (e) {}
-
-    // Возвращаем объект плагина (если требуется API)
-    return {
-        name: 'remove-shots'
-    };
+  observer.observe(document.documentElement || document.body, {
+    childList: true,
+    subtree: true
+  });
 })()
